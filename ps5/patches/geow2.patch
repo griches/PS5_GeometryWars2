@@ -1,3 +1,22 @@
+diff --git a/src/app/game.cpp b/src/app/game.cpp
+index 260b3d3..c75cb2b 100644
+--- a/src/app/game.cpp
++++ b/src/app/game.cpp
+@@ -1192,6 +1192,14 @@ bool load(Game& g, const fs::path& data_dir, int64_t seed, int mode, int languag
+     }
+   } catch (const std::exception&) {
+   }
++#ifdef __PROSPERO__
++  // PS5: the console version's credits first, in the original's style
++  {
++    const std::pair<int, std::string> ps5[] = {
++        {0, "PlayStation 5 Version"}, {2, "Port"}, {3, "Gary Riches"}, {2, "geow2"}, {3, "Derek Quenneville"}};
++    g.credits.insert(g.credits.begin(), std::begin(ps5), std::end(ps5));
++  }
++#endif
+   g.world->geom_shapes = &g.geom_shapes;
+   g.world->shots = &g.bullets;
+   g.ui = ui_transform(*g.gm);
 diff --git a/src/app/main.cpp b/src/app/main.cpp
 index 44a75f9..d29042c 100644
 --- a/src/app/main.cpp

@@ -85,7 +85,7 @@ int
 __wrap_main(int argc, char **argv, char **envp)
 {
    static char data_flag[] = "--data", data[] = DATA_DIR;
-   static char lines[16][256];
+   static char lines[48][256];
    char *args[64];
    int count = 0;
    struct stat status;
@@ -102,7 +102,7 @@ __wrap_main(int argc, char **argv, char **envp)
    args[count++] = data_flag;
    args[count++] = data;
    FILE *file = fopen(TITLE_DIR "/args.txt", "r");
-   for (int i = 0; file != NULL && i < 16 && fgets(lines[i], sizeof(lines[i]), file) != NULL; i++) {
+   for (int i = 0; file != NULL && i < 48 && fgets(lines[i], sizeof(lines[i]), file) != NULL; i++) {
       lines[i][strcspn(lines[i], "\r\n")] = '\0';
       if (lines[i][0] == '\0' || lines[i][0] == '#')
          continue;
