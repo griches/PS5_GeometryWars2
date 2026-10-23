@@ -11,6 +11,7 @@
       // Created on the first deploy when there is no database_id.
       "binding": "DB",
       "database_name": "geow2-scores-ps5",
+      "database_id": "10b66a1b-9a21-4aa0-9777-1321e3afd130",
       "migrations_dir": "migrations"
     }
   ],
