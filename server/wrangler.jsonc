@@ -1,0 +1,24 @@
+{
+  // The PS5 port's public board: geow2-scores with anyone joining from a
+  // device's pairing code, at scores.bouncingball.mobi.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "geow2-scores-ps5",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      // Created on the first deploy when there is no database_id.
+      "binding": "DB",
+      "database_name": "geow2-scores-ps5",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // GROUP_NAME (the group's name; "geow2 scores" when unset) and
+  // ADMIN_SECRET are set in the dashboard (Settings, Variables and Secrets)
+  // or asked for by the Deploy to Cloudflare button (.dev.vars.example);
+  // deploys keep them.
+  "keep_vars": true,
+  "vars": { "GROUP_NAME": "Geometry Wars 2 PS5" },
+  "routes": [{ "pattern": "scores.bouncingball.mobi", "custom_domain": true }]
+}

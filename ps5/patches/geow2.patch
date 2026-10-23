@@ -207,7 +207,7 @@ index 260b3d3..ca92e00 100644
      SDL_Log("cannot read the text (%s): the HUD uses its built-in labels", e.what());
    }
 diff --git a/src/app/main.cpp b/src/app/main.cpp
-index 44a75f9..18f67df 100644
+index 44a75f9..0939957 100644
 --- a/src/app/main.cpp
 +++ b/src/app/main.cpp
 @@ -95,6 +95,12 @@
@@ -223,7 +223,21 @@ index 44a75f9..18f67df 100644
  #include "app/console.h"
  #include "app/frontend.h"
  #include "app/profile.h"
-@@ -1585,6 +1591,18 @@ int run_window(SDL_GPUDevice* dev, Renderer& r, Game& g, const fs::path& data_di
+@@ -1269,6 +1275,13 @@ int run_window(SDL_GPUDevice* dev, Renderer& r, Game& g, const fs::path& data_di
+   // progress is in the profile, later in the same frame), when the game
+   // starts, and every five minutes in the menus.
+   Online online(profile_dir);
++#ifdef __PROSPERO__
++  // PS5: the port's public board, built in (or a test server from env.txt)
++  if (const char* test = std::getenv("GW_PS5_SCORES"); test && *test)
++    online.set_server(server_base(test));
++  else if (online.state().server.empty())
++    online.set_server(server_base("scores.bouncingball.mobi"));
++#endif
+   bool sync_soon = online.paired();
+   uint64_t last_sync = 0;
+   hooks.scored = [&](int mode, int64_t score, int multiplier, const std::string& name) {
+@@ -1585,6 +1598,18 @@ int run_window(SDL_GPUDevice* dev, Renderer& r, Game& g, const fs::path& data_di
        draw_frame(dev, r, cmd, swap, format, w, h, g, ui, display.exact_720p, frame720, smoothing ? &smooth : nullptr,
                   between);
      SDL_SubmitGPUCommandBuffer(cmd);
@@ -242,7 +256,7 @@ index 44a75f9..18f67df 100644
      if (!presented) SDL_Delay(4);  // nothing waited for a vblank: do not spin
      if (g_profile.on) {
        // --perf in the window: a report every 600 presented frames, and
-@@ -1869,6 +1887,12 @@ int main(int argc, char** argv) {
+@@ -1869,6 +1894,12 @@ int main(int argc, char** argv) {
        return 0;
      }
      data_dir = target;
@@ -255,6 +269,21 @@ index 44a75f9..18f67df 100644
    }
    if (!load(game, data_dir, seed, mode, language == 0 ? 1 : language)) {
      // Started from a desktop there is no console to read the log from.
+diff --git a/src/app/online.cpp b/src/app/online.cpp
+index 8e4637d..4fa23dd 100644
+--- a/src/app/online.cpp
++++ b/src/app/online.cpp
+@@ -316,7 +316,9 @@ std::array<std::vector<GroupRow>, 6> Online::group_boards() const {
+ 
+ std::string Online::device_name() {
+   if (const char* deck = std::getenv("SteamDeck"); deck && *deck == '1') return "Steam Deck";
+-#ifdef _WIN32
++#if defined(__PROSPERO__)
++  return "PlayStation 5";
++#elif defined(_WIN32)
+   char name[MAX_COMPUTERNAME_LENGTH + 1] = {};
+   DWORD n = sizeof(name);
+   if (GetComputerNameA(name, &n) && n) return name;
 diff --git a/src/app/setup.cpp b/src/app/setup.cpp
 index 888435f..828114c 100644
 --- a/src/app/setup.cpp
@@ -326,3 +355,52 @@ index bc5a780..925ff35 100644
  
   private:
    std::vector<std::string> text_, names_;
+diff --git a/src/net/http.cpp b/src/net/http.cpp
+index ff13889..5786930 100644
+--- a/src/net/http.cpp
++++ b/src/net/http.cpp
+@@ -8,6 +8,13 @@
+ #include <winhttp.h>
+ 
+ #include <vector>
++#elif defined(__PROSPERO__)
++#include <cstdlib>
++
++// PS5: the console's own libSceHttp (the port's ps5/src/http_ps5.c)
++extern "C" int ps5_http_request(const char* url, const char* body, size_t body_size, const char* bearer,
++                                int timeout_seconds, int* status, char** answer, size_t* answer_size, char* err,
++                                size_t err_size);
+ #else
+ #include <dlfcn.h>
+ 
+@@ -119,6 +126,30 @@ HttpResponse http_request(const std::string& url, const std::string& body, const
+   return r;
+ }
+ 
++#elif defined(__PROSPERO__)
++
++HttpResponse http_request(const std::string& url, const std::string& body, const std::string& bearer,
++                          int timeout_seconds) {
++  HttpResponse r;
++  char* answer = nullptr;
++  size_t size = 0;
++  char err[256] = {};
++  if (ps5_http_request(url.c_str(), body.empty() ? nullptr : body.c_str(), body.size(), bearer.c_str(),
++                       timeout_seconds, &r.status, &answer, &size, err, sizeof(err)) != 0) {
++    r.status = 0;
++    r.error = err;
++    return r;
++  }
++  if (size > kMaxBody) {
++    r.status = 0;
++    r.error = kTooLarge;
++  } else if (answer) {
++    r.body.assign(answer, size);
++  }
++  std::free(answer);
++  return r;
++}
++
+ #else
+ 
+ namespace {

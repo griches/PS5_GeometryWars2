@@ -1,0 +1,45 @@
+{
+  "name": "geow2-scores",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A score server for a group of geow2 players: shared high scores, unlocks and achievements",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler d1 migrations apply DB --local && wrangler dev",
+    "deploy": "wrangler deploy && wrangler d1 migrations apply geow2-scores-ps5 --remote",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "4.13.13",
+    "qrcode-generator": "2.0.4"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@cloudflare/workers-types": "5.20261008.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11",
+    "wrangler": "4.149.0"
+  },
+  "overrides": {
+    "undici": "7.29.1",
+    "sharp": "0.35.5"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ADMIN_SECRET": {
+        "description": "The password for the server's admin page (/admin), where you invite your friends. Pick a long one and keep it."
+      },
+      "GROUP_NAME": {
+        "description": "Your group's name, shown on the server's pages and in the game. For example: Friday Night Grid."
+      }
+    }
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "esbuild@0.28.2": true,
+    "workerd@1.20260815.1": true,
+    "workerd@1.20261006.1": true
+  }
+}

@@ -34,7 +34,7 @@ add_compile_options(-march=znver2)
 
 # The console: klog, the pad, the title's exit, and the libc names a title cannot import
 enable_language(C)
-add_library(ps5_platform STATIC ${ps5}/src/platform.c ${ps5}/src/shims.c ${ps5}/src/startup.c
+add_library(ps5_platform STATIC ${ps5}/src/platform.c ${ps5}/src/shims.c ${ps5}/src/startup.c ${ps5}/src/http_ps5.c
 	${ps5}/src/paths.c)
 target_include_directories(ps5_platform PUBLIC ${ps5}/src)
 target_include_directories(ps5_platform PRIVATE ${SDL_DIR}/include)
