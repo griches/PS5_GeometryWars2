@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Eternal Darkness for the PlayStation 5 - a picture as home-screen art (sce_sys/pic0.dds, pic1.dds).
+# Geometry Wars 2 for the PlayStation 5 - a picture as home-screen art (sce_sys/pic0.dds, pic1.dds).
 #
 #   python3 ps5/tools/png-to-title-dds.py PICTURE OUTPUT.dds
 #
