@@ -1,5 +1,147 @@
+diff --git a/src/app/frontend.cpp b/src/app/frontend.cpp
+index 2205843..03a7601 100644
+--- a/src/app/frontend.cpp
++++ b/src/app/frontend.cpp
+@@ -8,6 +8,20 @@
+ #include "game/fused.h"
+ #include "version.h"
+ 
++// The pad's face buttons in the key tips: the Xbox 360's letters, or on the
++// PS5 the PlayStation symbols the font has there (game/font.cpp)
++#ifdef __PROSPERO__
++#define PAD_A "\x80"
++#define PAD_B "\x81"
++#define PAD_X "\x82"
++#define PAD_Y "\x83"
++#else
++#define PAD_A "A"
++#define PAD_B "B"
++#define PAD_X "X"
++#define PAD_Y "Y"
++#endif
++
+ namespace geow2 {
+ namespace {
+ 
+@@ -400,13 +414,13 @@ void Frontend::after_game() {
+ void Frontend::tips_menu(TextLayout& l) const {
+   l.add(palette_[kUiHighlight], " \x1D\x1E ")->scale = 0.75f;
+   l.add(palette_[kUiNormal], text_(0x2C));
+-  l.add(palette_[kUiHighlight], " A ");
++  l.add(palette_[kUiHighlight], " " PAD_A " ");
+   l.add(palette_[kUiNormal], text_(0x33));
+ }
+ 
+ void Frontend::tips_back(TextLayout& l) const {
+   tips_menu(l);
+-  l.add(palette_[kUiHighlight], " B ");
++  l.add(palette_[kUiHighlight], " " PAD_B " ");
+   l.add(palette_[kUiNormal], text_(0x2E));
+ }
+ 
+@@ -415,12 +429,12 @@ void Frontend::tips_adjust(TextLayout& l) const {
+   l.add(palette_[kUiNormal], text_(0x2D));
+   l.add(palette_[kUiHighlight], " \x1D\x1E ")->scale = 0.75f;
+   l.add(palette_[kUiNormal], text_(0x2C));
+-  l.add(palette_[kUiHighlight], " B ");
++  l.add(palette_[kUiHighlight], " " PAD_B " ");
+   l.add(palette_[kUiNormal], text_(0x2E));
+ }
+ 
+ void Frontend::tips_continue(TextLayout& l) const {
+-  l.add(palette_[kUiHighlight], " A ");
++  l.add(palette_[kUiHighlight], " " PAD_A " ");
+   l.add(palette_[kUiNormal], text_(0x38));
+ }
+ 
+@@ -831,16 +845,16 @@ void Frontend::mode_select(bool refresh_boards) {
+     const int sel = selection_value();
+     const int mode = mode_of_text(kModeItems[sel < 6 ? sel : 0]);
+     const bool open_mode = profile_.mode_unlocked(mode);
+-    l.add(open_mode ? palette_[kUiHighlight] : palette_[kUiDisabled], "X ");
++    l.add(open_mode ? palette_[kUiHighlight] : palette_[kUiDisabled], PAD_X " ");
+     l.add(open_mode ? palette_[kUiNormal] : palette_[kUiDisabled], text_(0x2F));
+     // The leaderboard key: local boards stand in for Live (always there).
+-    l.add(palette_[kUiHighlight], " Y ");
++    l.add(palette_[kUiHighlight], " " PAD_Y " ");
+     l.add(palette_[kUiNormal], text_(0x30));
+     l.add(palette_[kUiHighlight], " \x1D\x1E\x09\x0A ");
+     l.add(palette_[kUiNormal], text_(0x2C));
+-    l.add(palette_[kUiHighlight], " A ");
++    l.add(palette_[kUiHighlight], " " PAD_A " ");
+     l.add(palette_[kUiNormal], text_(0x33));
+-    l.add(palette_[kUiHighlight], " B ");
++    l.add(palette_[kUiHighlight], " " PAD_B " ");
+     l.add(palette_[kUiNormal], text_(0x2E));
+   };
+   screen_.item_draw = [this](UiCanvas& c, int index, int text, bool selected, bool) { mode_tile(c, index, text, selected); };
+@@ -1163,11 +1177,11 @@ void Frontend::rules(int index, std::function<void(const MenuInput&)> back, int
+   const bool has_item = bool(start);
+   screen_.tips = [this, has_item](TextLayout& l) {
+     if (has_item) {
+-      l.add(palette_[kUiHighlight], "A ");
++      l.add(palette_[kUiHighlight], PAD_A " ");
+       l.add(palette_[kUiNormal], text_(0x34));
+-      l.add(palette_[kUiHighlight], " B ");
++      l.add(palette_[kUiHighlight], " " PAD_B " ");
+     } else {
+-      l.add(palette_[kUiHighlight], "B ");
++      l.add(palette_[kUiHighlight], PAD_B " ");
+     }
+     l.add(palette_[kUiNormal], text_(0x2E));
+   };
+@@ -1724,13 +1738,13 @@ void Frontend::lobby(bool reset) {
+   screen_.tips = [this](TextLayout& l) {
+     // sub_820833C0.
+     const int n = joined();
+-    l.add(copilots_ ? palette_[kUiHighlight] : palette_[kUiDisabled], " Y ");
++    l.add(copilots_ ? palette_[kUiHighlight] : palette_[kUiDisabled], " " PAD_Y " ");
+     l.add(copilots_ ? palette_[kUiNormal] : palette_[kUiDisabled], text_(0x39));
+     l.add(n >= 2 ? palette_[kUiHighlight] : palette_[kUiDisabled], " \x1D\x1E ");
+     l.add(n >= 2 ? palette_[kUiNormal] : palette_[kUiDisabled], text_(0x2C));
+-    l.add(n >= 2 ? palette_[kUiHighlight] : palette_[kUiDisabled], " A ");
++    l.add(n >= 2 ? palette_[kUiHighlight] : palette_[kUiDisabled], " " PAD_A " ");
+     l.add(n >= 2 ? palette_[kUiNormal] : palette_[kUiDisabled], text_(0x33));
+-    l.add(palette_[kUiHighlight], " B ");
++    l.add(palette_[kUiHighlight], " " PAD_B " ");
+     l.add(palette_[kUiNormal], text_(0x2E));
+   };
+   screen_.item_draw = [this](UiCanvas& c, int index, int text, bool selected, bool disabled) {
+@@ -2497,12 +2511,12 @@ void Frontend::board_view(int mode, std::function<void(const MenuInput&)> back,
+   screen_.tips = [this](TextLayout& l) {
+     // sub_82089BF0's X Change Filter (0x31), with a score server.
+     if (online_ && online_->paired()) {
+-      l.add(palette_[kUiHighlight], " X ");
++      l.add(palette_[kUiHighlight], " " PAD_X " ");
+       l.add(palette_[kUiNormal], text_(0x31));
+     }
+     l.add(palette_[kUiHighlight], " \x1D\x1E ")->scale = 0.75f;
+     l.add(palette_[kUiNormal], text_(0x2C));
+-    l.add(palette_[kUiHighlight], " B ");
++    l.add(palette_[kUiHighlight], " " PAD_B " ");
+     l.add(palette_[kUiNormal], text_(0x2E));
+   };
+ }
+@@ -2739,7 +2753,7 @@ void Frontend::pairing_screen() {
+        },
+        0);
+   screen_.tips = [this](TextLayout& l) {
+-    l.add(palette_[kUiHighlight], " B ");
++    l.add(palette_[kUiHighlight], " " PAD_B " ");
+     l.add(palette_[kUiNormal], text_(0x2E));
+   };
+ }
+@@ -2808,7 +2822,7 @@ void Frontend::achievements_screen() {
+   screen_.tips = [this](TextLayout& l) {
+     l.add(palette_[kUiHighlight], " \x1D\x1E ")->scale = 0.75f;
+     l.add(palette_[kUiNormal], text_(0x2C));
+-    l.add(palette_[kUiHighlight], " B ");
++    l.add(palette_[kUiHighlight], " " PAD_B " ");
+     l.add(palette_[kUiNormal], text_(0x2E));
+   };
+ }
 diff --git a/src/app/game.cpp b/src/app/game.cpp
-index 260b3d3..c75cb2b 100644
+index 260b3d3..ca92e00 100644
 --- a/src/app/game.cpp
 +++ b/src/app/game.cpp
 @@ -1192,6 +1192,14 @@ bool load(Game& g, const fs::path& data_dir, int64_t seed, int mode, int languag
@@ -17,6 +159,53 @@ index 260b3d3..c75cb2b 100644
    g.world->geom_shapes = &g.geom_shapes;
    g.world->shots = &g.bullets;
    g.ui = ui_transform(*g.gm);
+@@ -1215,6 +1223,46 @@ bool load(Game& g, const fs::path& data_dir, int64_t seed, int mode, int languag
+     if (auto t = text.find("ID_X_PLUS_ONE_LIFE")) g.plus_life_text = narrow(*t);
+     if (auto t = text.find("ID_X_PLUS_ONE_BOMB")) g.plus_bomb_text = narrow(*t);
+     g.text = UiText::load(read_file(data_dir / "xex" / "image.bin"), text);
++#ifdef __PROSPERO__
++    // PS5: the pad and the storage are the console's. Each language's own
++    // sentence with the Xbox 360's parts taken out; "\x80" is the font's
++    // cross (game/font.cpp). (A literal is broken after each escape that a
++    // hex digit follows.)
++    struct Wording {
++      int id;
++      const char* text[5];  // English, German, French, Spanish, Italian
++    };
++    static const Wording kWording[] = {
++        {0x24, {"L2 / R2", "L2 / R2", "L2 / R2", "L2 / R2", "L2 / R2"}},
++        {0x25, {"L1 / R1", "L1 / R1", "L1 / R1", "L1 / R1", "L1 / R1"}},
++        {0x74,
++         {"The game was unable to save your profile. Please try again.",
++          "Ihr Spielerprofil konnte nicht gespeichert werden. Versuchen Sie es erneut.",
++          "Le jeu n'a pas pu sauvegarder votre profil. Veuillez r\xE9" "essayer.",
++          "El juego no ha podido guardar tu perfil. Int\xE9ntalo de nuevo.",
++          "Impossibile salvare il tuo profilo, riprova."}},
++        {0x75,
++         {"The game was unable to save your achievements. Please try again.",
++          "Ihr Erfolg konnte nicht gespeichert werden. Versuchen Sie es erneut.",
++          "Le jeu n'a pas pu sauvegarder vos succ\xE8s. Veuillez r\xE9" "essayer.",
++          "El juego no ha podido guardar tus logros. Int\xE9ntalo de nuevo.",
++          "Impossibile salvare i tuoi obiettivi, riprova."}},
++        {0x76,
++         {"The game was unable to load your profile. Please try again.",
++          "Ihr Spielerprofil konnte nicht geladen werden. Versuchen Sie es erneut.",
++          "Chargement du profil impossible, veuillez r\xE9" "essayer.",
++          "El juego no ha podido cargar tu perfil. Int\xE9ntalo de nuevo.",
++          "Impossibile caricare il tuo profilo, riprova."}},
++        {0x85,
++         {"Press \x80 to join", "\x80-Taste zum Beitreten", "Appuyez sur \x80 pour rejoindre",
++          "Pulsa \x80 para unirte.", "Premi \x80 per partecipare"}},
++        {0x86,
++         {"Connect Controller", "Controller anschlie\xDF" "en", "Veuillez connecter la manette",
++          "Conecta un mando", "Collega il controller"}},
++    };
++    const int which = language >= 3 && language <= 6 ? language - 2 : 0;
++    for (const Wording& w : kWording) g.text.set(w.id, w.text[which]);
++#endif
+   } catch (const std::exception& e) {
+     SDL_Log("cannot read the text (%s): the HUD uses its built-in labels", e.what());
+   }
 diff --git a/src/app/main.cpp b/src/app/main.cpp
 index 44a75f9..d29042c 100644
 --- a/src/app/main.cpp
@@ -51,3 +240,49 @@ index 44a75f9..d29042c 100644
      if (!presented) SDL_Delay(4);  // nothing waited for a vblank: do not spin
      if (g_profile.on) {
        // --perf in the window: a report every 600 presented frames, and
+diff --git a/src/game/font.cpp b/src/game/font.cpp
+index 2280fe5..e64804e 100644
+--- a/src/game/font.cpp
++++ b/src/game/font.cpp
+@@ -167,6 +167,26 @@ Font Font::from_image(std::span<const uint8_t> image) {
+   alias(0xD1, 0xF1, 6);
+   alias(0xD8, 0xF8, 5);
+   alias(0x8C, 0x9C, 1);
++#ifdef __PROSPERO__
++  // PS5: the pad's face buttons as the key tips show them (codes 0x80..0x83,
++  // which neither the font nor the game's text uses): cross, circle, square
++  // and triangle, drawn in the font's own 1 x 1 box
++  auto add = [&](int code, std::vector<std::array<float, 4>> segments) {
++    f.map_[size_t(code)] = uint8_t(f.glyphs_.size());
++    f.glyphs_.push_back(Glyph{code, 1.0f, std::move(segments)});
++  };
++  add(0x80, {{0.1f, 0.1f, 0.9f, 0.9f}, {0.9f, 0.1f, 0.1f, 0.9f}});
++  std::vector<std::array<float, 4>> circle;
++  for (int k = 0; k < 12; ++k) {
++    const float a0 = float(k) * 0.5235988f, a1 = float(k + 1) * 0.5235988f;
++    circle.push_back({0.5f + 0.42f * std::cos(a0), 0.5f + 0.42f * std::sin(a0), 0.5f + 0.42f * std::cos(a1),
++                      0.5f + 0.42f * std::sin(a1)});
++  }
++  add(0x81, std::move(circle));
++  add(0x82, {{0.12f, 0.12f, 0.88f, 0.12f}, {0.88f, 0.12f, 0.88f, 0.88f}, {0.88f, 0.88f, 0.12f, 0.88f},
++             {0.12f, 0.88f, 0.12f, 0.12f}});
++  add(0x83, {{0.5f, 0.08f, 0.95f, 0.88f}, {0.95f, 0.88f, 0.05f, 0.88f}, {0.05f, 0.88f, 0.5f, 0.08f}});
++#endif
+   return f;
+ }
+ 
+diff --git a/src/game/ui_text.h b/src/game/ui_text.h
+index bc5a780..925ff35 100644
+--- a/src/game/ui_text.h
++++ b/src/game/ui_text.h
+@@ -20,6 +20,10 @@ class UiText {
+   const std::string& operator()(int id) const;
+   // The id's name in the table (ID_...), "" when unknown.
+   const std::string& name(int id) const;
++  // Another text for a slot (the PS5's own wording for a few of them).
++  void set(int id, std::string s) {
++    if (id >= 0 && size_t(id) < text_.size()) text_[size_t(id)] = std::move(s);
++  }
+ 
+  private:
+   std::vector<std::string> text_, names_;
