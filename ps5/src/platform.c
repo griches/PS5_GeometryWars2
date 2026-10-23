@@ -46,7 +46,7 @@ int sceKernelUsleep(uint32_t microseconds);
 
 /* The output's refresh in millihertz, set by the console's swap chain once it
  * has chosen it (ps5/patches/radv.patch): 119880 with a 120 Hz output, else
- * 59940. The recomp's "Match display refresh rate" reads it (its frame.cpp). */
+ * 59940. The SDL driver reports it as the display's refresh (ps5/sdl/SDL_ps5video.c). */
 int ps5_output_refresh_millihz;
 
 void

@@ -11,7 +11,8 @@
  * The display's size is the console's output (3840x2160 on a 4K television,
  * 1920x1080 otherwise), asked of VK_KHR_display at start-up, so SDL's idea of
  * the window is the swapchain's. SDL_PS5_DISPLAY=WIDTHxHEIGHT in the
- * environment overrides it.
+ * environment overrides it. Its refresh is the output's once the swap chain
+ * has chosen 120 or 60 Hz.
  *
  * SPDX-License-Identifier: Zlib
  */
@@ -21,6 +22,7 @@
 
 #include "video/SDL_sysvideo.h"
 #include "events/SDL_events_c.h"
+#include "events/SDL_displayevents_c.h"
 
 #include "platform.h"
 
@@ -148,8 +150,34 @@ static void PS5_VideoQuit(SDL_VideoDevice *_this)
 {
 }
 
+/* The output's refresh once the swap chain has chosen it (ps5/patches/radv.patch:
+ * 119880 on a TV that runs 120 Hz, else 59940; 0 before), as the display
+ * mode's: SDL's event for it tells the title, which locks its steps to it */
+extern int ps5_output_refresh_millihz;
+
 static void PS5_PumpEvents(SDL_VideoDevice *_this)
 {
+    static int reported;
+    const int millihz = ps5_output_refresh_millihz;
+
+    if (millihz > 0 && millihz != reported && _this->num_displays > 0) {
+        SDL_VideoDisplay *display = _this->displays[0];
+        SDL_DisplayMode *modes[2] = { &display->desktop_mode, (SDL_DisplayMode *)display->current_mode };
+
+        /* In place: SDL keeps a pointer to the current mode, and its desktop
+         * setter leaves a fullscreen display alone */
+        reported = millihz;
+        for (int i = 0; i < 2; i++) {
+            if (modes[i] && (i == 0 || modes[i] != modes[0])) {
+                modes[i]->refresh_rate_numerator = millihz;
+                modes[i]->refresh_rate_denominator = 1000;
+                modes[i]->refresh_rate = SDL_roundf((float)millihz / 10.0f) / 100.0f;
+            }
+        }
+        SDL_SendDisplayEvent(display, SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED, display->desktop_mode.w,
+                             display->desktop_mode.h);
+        say("video: the output refreshes at %.2f Hz", millihz / 1000.0);
+    }
 }
 
 static bool PS5_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID props)

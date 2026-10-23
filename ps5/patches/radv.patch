@@ -1,0 +1,41 @@
+--- a/src/vulkan/wsi/wsi_common_videoout.c	2026-10-22 15:23:10.602996900 +0100
++++ b/src/vulkan/wsi/wsi_common_videoout.c	2026-10-22 15:23:39.311427607 +0100
+@@ -362,6 +362,11 @@
+ /* Opens VideoOut once per process, in the high-frame-rate mode where the
+  * title declares it, the output takes it and the display then refreshes at
+  * it. Under lock. */
++/* Geometry Wars 2 port: the output's refresh in millihertz once it is chosen
++ * (119880 or 59940), which the title's SDL driver reports as the display's
++ * refresh. The title defines it (ps5/src/platform.c). */
++extern int ps5_output_refresh_millihz __attribute__((weak));
++
+ static bool
+ videoout_open_locked(void)
+ {
+@@ -384,7 +389,16 @@
+       out->high_frame_rate = configured == 0;
+       if (out->high_frame_rate) {
+          const uint64_t period = videoout_vblank_period_ns(out->handle);
+-         if (period > VIDEOOUT_HIGH_REFRESH_LIMIT_NS) {
++         /* Geometry Wars 2 port (as Eternal Darkness's): with VRR (the system
++          * turns a 119.88 Hz request into VRR 119.88 Hz) the TV refreshes as
++          * flips arrive and, with none pending, idles at the bottom of its
++          * range (a vblank every 20.9 ms on a TV whose range starts at 48 Hz).
++          * A display really at 60 Hz gives 16.7 ms, so anything slower than
++          * 55 Hz is the VRR output, and 120 Hz is kept. */
++         if (period > UINT64_C(18000000)) {
++            fprintf(stderr, "wsi/videoout: 119.88 Hz with VRR (idle, a vblank every %.3f ms)\n",
++                    (double)period / 1e6);
++         } else if (period > VIDEOOUT_HIGH_REFRESH_LIMIT_NS) {
+             sceVideoOutConfigureOutput(out->handle, PS5_VIDEO_OUT_MODE_RESTORE, NULL, NULL, NULL);
+             out->high_frame_rate = false;
+             fprintf(stderr,
+@@ -396,6 +410,8 @@
+                  supported > 0 ? "refused" : "not supported", configured);
+       }
+    }
++   if (&ps5_output_refresh_millihz != NULL)
++      ps5_output_refresh_millihz = out->high_frame_rate ? 119880 : 59940;
+    return true;
+ }
+ 
