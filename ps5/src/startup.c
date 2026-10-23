@@ -5,11 +5,15 @@
  * standard error into klog and the shell's splash dismissed, where geow2 keeps
  * its profile (settings, unlocks, scores, achievements), and test options from
  * env.txt and args.txt. The CRT's call to main comes through __wrap_main, which
- * names the game's data folder (geow2's --data) and stops with a notification
- * when the player has not put it there yet.
+ * names the game's data folder (geow2's --data). On a first start there is
+ * none: the player's own package (the LIVE file of the Xbox Live Arcade
+ * release) in dump/ goes to geow2's setup screen (--setup-from), which makes
+ * the folder from it; with no package there either, a notification says where
+ * it goes.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+#include <dirent.h>
 #include <errno.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -27,8 +31,10 @@
 #define TITLE_DIR "/app0"
 #define USER_DIR TITLE_DIR "/userdata"
 #define CACHE_DIR TITLE_DIR "/cache"
-/* What geow2-extract makes from the player's Xbox Live Arcade package */
+/* What geow2's extractor makes from the player's Xbox Live Arcade package */
 #define DATA_DIR TITLE_DIR "/data"
+/* Where the player puts the package */
+#define DUMP_DIR TITLE_DIR "/dump"
 
 int sceKernelSendNotificationRequest(int device, void *request, size_t size, int blocking);
 
@@ -76,31 +82,76 @@ load_env_file(void)
    fclose(file);
 }
 
+/* The player's package: a file in dump/ (or in folders under it, as the
+ * console's 584108FF/000D0000 copies them) that starts as an Xbox 360 content
+ * package does (LIVE, PIRS or CON). geow2's extractor checks the rest. */
+static bool
+find_package(const char *folder, char *path, size_t size, int depth)
+{
+   struct dirent *entry;
+   bool found = false;
+   DIR *dir = opendir(folder);
+
+   if (dir == NULL)
+      return false;
+   while (!found && (entry = readdir(dir)) != NULL) {
+      char child[1024], magic[4];
+      struct stat status;
+      FILE *file;
+
+      if (entry->d_name[0] == '.')
+         continue;
+      snprintf(child, sizeof(child), "%s/%s", folder, entry->d_name);
+      if (stat(child, &status) != 0)
+         continue;
+      if (S_ISDIR(status.st_mode)) {
+         found = depth < 4 && find_package(child, path, size, depth + 1);
+      } else if ((file = fopen(child, "rb")) != NULL) {
+         if (fread(magic, 1, 4, file) == 4 &&
+             (memcmp(magic, "LIVE", 4) == 0 || memcmp(magic, "PIRS", 4) == 0 || memcmp(magic, "CON ", 4) == 0)) {
+            snprintf(path, size, "%s", child);
+            found = true;
+         }
+         fclose(file);
+      }
+   }
+   closedir(dir);
+   return found;
+}
+
 /* The CRT's call to main (--wrap=main, ps5/tools/link-title.sh): geow2's main
- * gets --data, then one argument a line from /app0/args.txt for a test run
- * (--720p, --perf, ...), then any argument the console passed */
+ * gets --data (and --setup-from on a first start), then one argument a line
+ * from /app0/args.txt for a test run (--720p, --perf, ...), then any argument
+ * the console passed */
 int __real_main(int argc, char **argv, char **envp);
 
 int
 __wrap_main(int argc, char **argv, char **envp)
 {
-   static char data_flag[] = "--data", data[] = DATA_DIR;
+   static char data_flag[] = "--data", data[] = DATA_DIR, setup_flag[] = "--setup-from";
+   static char package[1024];
    static char lines[48][256];
    char *args[64];
    int count = 0;
    struct stat status;
 
-   if (stat(DATA_DIR "/files/Data.bin", &status) != 0) {
-      fprintf(stderr, "no game data in " DATA_DIR "\n");
-      notify("Geometry Wars 2: no game data found.\nMake the data folder from your own Xbox Live Arcade "
-             "copy of Geometry Wars: Retro Evolved 2 with geow2-extract, and copy it to "
-             "/data/homebrew/" PS5_TITLE_ID "/data/, then start again.");
-      sleep(2);
-      return 1;
-   }
    args[count++] = argc > 0 ? argv[0] : "eboot.bin";
    args[count++] = data_flag;
    args[count++] = data;
+   if (stat(DATA_DIR "/files/Data.bin", &status) != 0) {
+      mkdir(DUMP_DIR, 0777);
+      if (!find_package(DUMP_DIR, package, sizeof(package), 0)) {
+         fprintf(stderr, "no game data in " DATA_DIR " and no package in " DUMP_DIR "\n");
+         notify("Geometry Wars 2: copy your own Xbox Live Arcade copy of Geometry Wars: Retro Evolved 2 "
+                "(the LIVE file in 584108FF/000D0000/) into /data/homebrew/" PS5_TITLE_ID "/dump/, "
+                "then start again.");
+         sleep(2);
+         return 1;
+      }
+      fprintf(stderr, "first start: making " DATA_DIR " from %s\n", package);
+      args[count++] = setup_flag;
+      args[count++] = package;
+   }
    FILE *file = fopen(TITLE_DIR "/args.txt", "r");
    for (int i = 0; file != NULL && i < 48 && fgets(lines[i], sizeof(lines[i]), file) != NULL; i++) {
       lines[i][strcspn(lines[i], "\r\n")] = '\0';
@@ -115,6 +166,25 @@ __wrap_main(int argc, char **argv, char **envp)
       args[count++] = argv[i];
    args[count] = NULL;
    return __real_main(count, args, envp);
+}
+
+/* After the first start's setup (geow2's main, ps5/patches/geow2.patch): the
+ * game's own swap chain does not come up in a process whose setup screen had
+ * one (RADV's VideoOut is the process's), so the title starts again, now with
+ * its data. If the console will not, the player is told to start it again. */
+int sceSystemServiceLoadExec(const char *path, const char *const *argv);
+void catchReturnFromMain(int status); /* ps5/src/platform.c: the shell closes the title */
+
+void
+ps5_restart_title(void)
+{
+   say("setup done: starting the title again");
+   fflush(NULL);
+   const int result = sceSystemServiceLoadExec("/app0/eboot.bin", NULL);
+   say("setup done: the console would not start the title again (0x%08x)", (unsigned)result);
+   notify("Geometry Wars 2 is set up from your copy of the game. Start it again to play.");
+   sleep(2);
+   catchReturnFromMain(0);
 }
 
 /* A watchdog: the title's memory every two seconds into klog when it moves by

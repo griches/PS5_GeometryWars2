@@ -22,6 +22,7 @@ vulkan=$(cd -- "${PS5_VULKAN_DIR:-$root/../PS5_Vulkan}" && pwd)
 bash "$ps5/tools/setup-source.sh"
 sdl=$(bash "$ps5/tools/setup-sdl.sh")
 sdk=$(bash "$ps5/tools/setup-sdk.sh")
+bash "$ps5/tools/setup-ffmpeg.sh" > /dev/null
 # The title's own RADV (120 Hz on a VRR TV); link-title.sh links RADV_ARCHIVE.
 export RADV_ARCHIVE=${RADV_ARCHIVE:-$(PS5_VULKAN_DIR="$vulkan" bash "$ps5/tools/setup-radv.sh")}
 build=${PS5_BUILD_DIR:-$root/build/game}

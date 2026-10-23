@@ -7,6 +7,8 @@
 #   SDL3    .deps/SDL, patched (tools/setup-sdl.sh), with the drivers in ps5/sdl;
 #           its GPU API (geow2's renderer) on Vulkan, which is RADV
 #   glslc   tools/glslc.sh: glslang's validator, for the SPIR-V shaders
+#   FFmpeg  .deps/ffmpeg-ps5 (tools/setup-ffmpeg.sh): the XMA1 decoder for the
+#           first start's setup (ps5/src/xma.cpp)
 #
 # and makes the executable's link PS5_Vulkan's (tools/link-title.sh, with RADV).
 #
@@ -63,6 +65,17 @@ endforeach()
 # (SDL_VULKAN is SDL's switch for a desktop's loader: ps5/patches/sdl.patch turns
 # Vulkan on for the console itself, and SDL_GPU then builds its Vulkan backend)
 
+# The extractor's XMA1 waves, decoded in the title (ps5/src/xma.cpp) with
+# FFmpeg's libraries (tools/setup-ffmpeg.sh)
+if(NOT FFMPEG_DIR)
+	set(FFMPEG_DIR ${PS5_PORT_DIR}/.deps/ffmpeg-ps5)
+endif()
+add_library(ps5_xma STATIC ${ps5}/src/xma.cpp)
+target_include_directories(ps5_xma PRIVATE ${FFMPEG_DIR}/include)
+target_compile_features(ps5_xma PRIVATE cxx_std_20)
+target_link_libraries(ps5_xma PUBLIC ${FFMPEG_DIR}/lib/libavformat.a ${FFMPEG_DIR}/lib/libavcodec.a
+	${FFMPEG_DIR}/lib/libavutil.a)
+
 # The shaders: geow2 asks for the Vulkan SDK's glslc
 set(GLSLC ${ps5}/tools/glslc.sh CACHE FILEPATH "" FORCE)
 
@@ -76,6 +89,7 @@ set(CMAKE_CXX_LINK_EXECUTABLE
 # depend on it by itself (the game's target exists once its CMakeLists.txt has run)
 function(ps5_late_fixes)
 	add_dependencies(geow2 ps5_platform)
+	target_link_libraries(geow2 PRIVATE ps5_xma)
 	set_property(TARGET geow2 APPEND PROPERTY LINK_DEPENDS ${ps5_platform_archive})
 endfunction()
 cmake_language(DEFER DIRECTORY ${CMAKE_SOURCE_DIR} CALL ps5_late_fixes)

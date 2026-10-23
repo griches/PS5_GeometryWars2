@@ -207,21 +207,23 @@ index 260b3d3..ca92e00 100644
      SDL_Log("cannot read the text (%s): the HUD uses its built-in labels", e.what());
    }
 diff --git a/src/app/main.cpp b/src/app/main.cpp
-index 44a75f9..d29042c 100644
+index 44a75f9..18f67df 100644
 --- a/src/app/main.cpp
 +++ b/src/app/main.cpp
-@@ -95,6 +95,10 @@
+@@ -95,6 +95,12 @@
  #include <string>
  #include <vector>
  
 +#ifdef __PROSPERO__
 +#include <unistd.h>
++
++extern "C" void ps5_restart_title(void);
 +#endif
 +
  #include "app/console.h"
  #include "app/frontend.h"
  #include "app/profile.h"
-@@ -1585,6 +1589,18 @@ int run_window(SDL_GPUDevice* dev, Renderer& r, Game& g, const fs::path& data_di
+@@ -1585,6 +1591,18 @@ int run_window(SDL_GPUDevice* dev, Renderer& r, Game& g, const fs::path& data_di
        draw_frame(dev, r, cmd, swap, format, w, h, g, ui, display.exact_720p, frame720, smoothing ? &smooth : nullptr,
                   between);
      SDL_SubmitGPUCommandBuffer(cmd);
@@ -240,6 +242,44 @@ index 44a75f9..d29042c 100644
      if (!presented) SDL_Delay(4);  // nothing waited for a vblank: do not spin
      if (g_profile.on) {
        // --perf in the window: a report every 600 presented frames, and
+@@ -1869,6 +1887,12 @@ int main(int argc, char** argv) {
+       return 0;
+     }
+     data_dir = target;
++#ifdef __PROSPERO__
++    // PS5: the game's swap chain cannot follow the setup screen's in one
++    // process; the port starts the title again (ps5/src/startup.c)
++    SDL_Quit();
++    ps5_restart_title();
++#endif
+   }
+   if (!load(game, data_dir, seed, mode, language == 0 ? 1 : language)) {
+     // Started from a desktop there is no console to read the log from.
+diff --git a/src/app/setup.cpp b/src/app/setup.cpp
+index 888435f..828114c 100644
+--- a/src/app/setup.cpp
++++ b/src/app/setup.cpp
+@@ -29,6 +29,11 @@
+ #include <windows.h>
+ #endif
+ 
++#ifdef __PROSPERO__
++// PS5: no programs to run; the port decodes in the title (ps5/src/xma.cpp)
++int ps5_ffmpeg_run(const std::string& command);
++#endif
++
+ namespace geow2 {
+ namespace {
+ 
+@@ -100,6 +105,8 @@ ExtractHooks base_hooks() {
+   ExtractHooks h;
+ #ifdef _WIN32
+   h.run = run_hidden;
++#elif defined(__PROSPERO__)
++  h.run = ::ps5_ffmpeg_run;
+ #endif
+   return h;
+ }
 diff --git a/src/game/font.cpp b/src/game/font.cpp
 index 2280fe5..e64804e 100644
 --- a/src/game/font.cpp

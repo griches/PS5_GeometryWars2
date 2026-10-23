@@ -213,6 +213,7 @@ mkdir -p "$app/licenses"
 cp "$game/LICENSE" "$app/licenses/geow2.txt"
 cp "$game/THIRD-PARTY-NOTICES.md" "$app/licenses/geow2-THIRD-PARTY-NOTICES.md"
 cp "$root/.deps/SDL/LICENSE.txt" "$app/licenses/sdl.txt"
+cp "$root/.deps/ffmpeg-ps5/LICENSE.txt" "$app/licenses/ffmpeg-LGPL-2.1.txt"
 cp "$vulkan/LICENSE" "$app/licenses/PS5_Vulkan.txt"
 mesa=$(dirname "$vulkan")/PS5_Mesa
 if [[ -f $mesa/docs/license.rst ]]; then

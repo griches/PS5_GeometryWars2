@@ -2,7 +2,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 90b368d..8c0cf9d 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -1329,6 +1329,35 @@ if(SDL_HAPTIC)
+@@ -1329,6 +1329,38 @@ if(SDL_HAPTIC)
  endif()
  
  
@@ -32,6 +32,9 @@ index 90b368d..8c0cf9d 100644
 +    # (SDL_GPU's Vulkan backend draws through it)
 +    set(SDL_VIDEO_VULKAN 1)
 +    set(HAVE_VULKAN TRUE)
++    # ... and SDL's own 2D renderer (geow2's first-start setup screen)
++    set(SDL_VIDEO_RENDER_VULKAN 1)
++    set(HAVE_RENDER_VULKAN TRUE)
 +  endif()
 +endif()
 +
