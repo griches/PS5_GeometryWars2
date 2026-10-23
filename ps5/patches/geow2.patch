@@ -1,0 +1,34 @@
+diff --git a/src/app/main.cpp b/src/app/main.cpp
+index 44a75f9..d29042c 100644
+--- a/src/app/main.cpp
++++ b/src/app/main.cpp
+@@ -95,6 +95,10 @@
+ #include <string>
+ #include <vector>
+ 
++#ifdef __PROSPERO__
++#include <unistd.h>
++#endif
++
+ #include "app/console.h"
+ #include "app/frontend.h"
+ #include "app/profile.h"
+@@ -1585,6 +1589,18 @@ int run_window(SDL_GPUDevice* dev, Renderer& r, Game& g, const fs::path& data_di
+       draw_frame(dev, r, cmd, swap, format, w, h, g, ui, display.exact_720p, frame720, smoothing ? &smooth : nullptr,
+                  between);
+     SDL_SubmitGPUCommandBuffer(cmd);
++#ifdef __PROSPERO__
++    // PS5: a test tool's picture of the screen (PS5_DevLoop's grab). Removing its
++    // request file is the check; when that works, the frame is drawn again
++    // offscreen into the title's screenshots folder, where the tool takes it.
++    if (static int grab_frames = 0; presented && ++grab_frames % 4 == 0 && ::unlink("/app0/devloop-shot") == 0) {
++      static int grabs = 0;
++      const fs::path folder = "/app0/userdata/screenshots";
++      std::error_code ec;
++      fs::create_directories(folder, ec);
++      capture(dev, r, g, ui, folder / ("grab-" + std::to_string(++grabs) + ".png"), 1920, 1080, display.exact_720p);
++    }
++#endif
+     if (!presented) SDL_Delay(4);  // nothing waited for a vblank: do not spin
+     if (g_profile.on) {
+       // --perf in the window: a report every 600 presented frames, and

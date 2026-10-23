@@ -1,0 +1,3 @@
+[submodule "vendor/geow2"]
+	path = vendor/geow2
+	url = https://github.com/techknight/geow2

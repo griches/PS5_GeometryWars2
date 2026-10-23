@@ -1,0 +1,9 @@
+.DS_Store
+build/
+dist/
+klog/
+.deps/
+# never: the player's game, or the data made from it
+dump/
+data/
+*.log
